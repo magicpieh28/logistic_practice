@@ -70,13 +70,14 @@ def make_data(path:Path, vocab_size:int, target:float) -> List:
 	return data
 
 def return_with_target(vocab_size:int) -> Tuple:
-	pos_vector, pos_target = zip(*make_data(positive, vocab_size, 1.0))
-	neg_vector, neg_target = zip(*make_data(negative, vocab_size, 0.0))
-	dataset = list(zip(pos_vector+neg_vector, pos_target+neg_target))
+	pos_data = make_data(positive, vocab_size, 1.0)
+	# print(f'pos => {type(pos_data)}')
+	neg_data = make_data(negative, vocab_size, 0.0)
+	dataset = pos_data + neg_data
 	shuffle(dataset)
-	data, target = zip(*dataset)
-	print(f'data => {data}\ntarget => {target}')
-	return data, target
+	data, targets = zip(*dataset)
+	print(f'data => {data}\ntargets => {targets}')
+	return data, targets
 
 def iteration(data, target, batch_size:int):
 	for sample_num in range(0, len(data)+1, batch_size): # 0 부터 data 길이까지 batch_size만큼씩 불러오면서 반복

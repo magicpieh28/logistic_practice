@@ -1,89 +1,65 @@
-import numpy as np, numpy.ma as ma
-import math
+import numpy as np
 from train import return_with_target, iteration
 
 def sigmoid(z):
-	return 1.0 / 1.0 + np.exp(-z)
+	return 1.0 / (1.0 + np.exp(-z))
 
 class Classifier(object):
 	def __init__(self, input_size):
 		self.input_size = input_size
 		self.W = np.random.random(input_size)
-		self.b = np.array([0.])
+		self.b = np.array(0.)
 
 	def forward(self, input_data): #sigmoid
 		z = input_data @ self.W + self.b
-		output = np.array(sigmoid(z))
-		return output
+		return sigmoid(z)
 
 	def backward(self, input_data, output, target): #backward = back propagation
 		# 로지스틱 회귀의 최적화는 backward를 계산하는 것이며 이의 값은 광배법을 위한 값이 된다.
-		grad = -sum((target + output - 2 * target * output) @ input_data)
-		return grad
+		# print(f'input_data => {input_data}\noutput => {output}\ntarget => {target}')
+		# targets.shape = > (2000,), input.shape = > (32, 1001), output.shape = > (32,)
+		grad = (target - output) @ input_data / input_data.shape[0]
+		# print(f'grad => {grad}')
+		error_mean = np.mean(output - target)
+		# print(f'error_mean => {error_mean}')
+		return grad, error_mean
 
-def loss(output, target):
-	lossfunc = -sum((target * np.log(output)) + (1-target) * np.log(1-output))
+def cross_entropy(output, target):
+	e = np.finfo(np.float32).eps
+	cross = -(target * np.log(output  + e)) + (1-target) * np.log(1-output + e)
 	# 곱하기 * 를 사용하면 sum을 사용해야 하지만 다 내적으로 곱해버리면 sum은 필요없음
 	# x 내적 y = sum(x_i * y_i) 그렇지! 직접 행렬로 적어서 보면 아는 것을...
-	return np.mean(lossfunc)
+	return float(np.mean(cross))
 
 def accuracy(output, target):
-	acc = []
-	for y, t in zip(output, target):
-		if int(y >= 0.5) is int(t):
-			acc.append(y)
-	return np.mean(acc)
+	y = np.array([y_i > 0.5 for y_i in output], dtype=np.int32)
+	t = np.array([target], dtype=np.int32)
+	return float(np.mean(y == t))
 
-def make_multi_array(data_tuple:tuple):
-	length_list = []
-	for data_list in data_tuple:
-		if type(data_list) is list:
-			# print(f'type(data_list) => {type(data_list)}')
-			# print(f'data_list => {data_list}')
-			length = len(data_list)
-			# print(length)
-			length_list.append(length)
-		else:
-			pass
-	print(length_list)
-
-	maxlen = max(length_list, default=0)
-	# print(maxlen)
-	matrix = np.array([])
-	for index, lens in enumerate(length_list):
-		if lens < maxlen:
-			zeros = np.zeros(maxlen)
-			# print(zeros)
-			zeros[:lens] = data_tuple[index]
-			np.append(matrix, zeros)
-		else:
-			pass
-	print(matrix)
-	return matrix
-
-def train(vocab_size:int = 1000, epoch_num:int = 20, batch_size:int = 32, step_size:float = 0.05):
+def train(vocab_size:int = 1000, epoch_num:int = 100, batch_size:int = 8, step_size:float = 0.05):
 	data, targets = return_with_target(vocab_size)
-	# print(f'data => {len(data)}\ntarget => {len(target)}')
-	logistic = Classifier(vocab_size)
+	# print(f'data from train => {type(data)}\ntargets from train => {type(targets)}')
+	data = np.array(data, dtype=np.float32)
+	targets = np.array(targets, dtype=np.float32)
+	# data.shape => (2000, 1001), targets.shape => (2000,)
+	logistic = Classifier(vocab_size+1) # UNK 를 추가했으니까
 
 	for epoch in range(epoch_num):
 		for input_data, t in iteration(data, targets, batch_size):
-			# print(f'datum => {len(input_data)}\nanswer => {len(t)}')
-			data_array = make_multi_array(input_data)
-			# print(f'data_array => {data_array}')
-			target_array = make_multi_array(t)
-			# print(f'target_array => {target_array}')
+			output = logistic.forward(input_data)
+			grad_W, grad_b = logistic.backward(input_data, output, t)
 
-			output = logistic.forward(data_array)
-			grad = logistic.backward(data_array, output, target_array)
-			logistic.W += step_size * grad
+			logistic.W -= step_size * grad_W
+			logistic.b -= step_size * grad_b
 
-		outputs = logistic.forward(np.matrix(data))
-		acc_score = accuracy(outputs, np.array(target))
-		loss_score = loss(outputs, np.array(target))
-		print(f'accuracy => {acc_score:.2f} \ loss => {loss_score:.2f}')
+			# print(output)
+
+		outputs = logistic.forward(data)
+		acc_score = accuracy(outputs, targets)
+		loss_score = cross_entropy(outputs, targets)
+		print(f'epoch => {epoch+1} / accuracy => {acc_score:.2f} / loss => {loss_score:.2f}')
 
 
 
 if __name__ == '__main__':
-    train()
+	train()

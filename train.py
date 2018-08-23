@@ -9,6 +9,7 @@ positive = dir/'books'/'positive.review'
 negative = dir/'books'/'negative.review'
 
 UNK = '<UNK>' # unknown 단어가 나왔을 때를 위한 포석
+counter = Counter()
 
 
 def token_freq(path:Path) -> List:

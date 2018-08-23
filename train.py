@@ -86,7 +86,6 @@ def iteration(data, targets, batch_size:int):
 
 
 if __name__ == '__main__':
-	counter = Counter()
 	data, targets = return_with_target(200)
 	for datum, target in iteration(data, targets, 4):
 		print(f'datum => {datum}\ntarget => {target}')

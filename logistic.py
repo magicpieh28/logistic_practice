@@ -62,12 +62,12 @@ def make_multi_array(data_tuple:tuple):
 	return matrix
 
 def train(vocab_size:int = 1000, epoch_num:int = 20, batch_size:int = 32, step_size:float = 0.05):
-	data, target = return_with_target(vocab_size)
+	data, targets = return_with_target(vocab_size)
 	# print(f'data => {len(data)}\ntarget => {len(target)}')
 	logistic = Classifier(vocab_size)
 
 	for epoch in range(epoch_num):
-		for input_data, t in iteration(data, target, batch_size):
+		for input_data, t in iteration(data, targets, batch_size):
 			# print(f'datum => {len(input_data)}\nanswer => {len(t)}')
 			data_array = make_multi_array(input_data)
 			# print(f'data_array => {data_array}')

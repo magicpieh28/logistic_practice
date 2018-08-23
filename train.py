@@ -76,21 +76,17 @@ def return_with_target(vocab_size:int) -> Tuple:
 	dataset = pos_data + neg_data
 	shuffle(dataset)
 	data, targets = zip(*dataset)
-	print(f'data => {data}\ntargets => {targets}')
+	# print(f'data => {type(data)}\ntargets => {type(targets)}')
 	return data, targets
 
-def iteration(data, target, batch_size:int):
+def iteration(data, targets, batch_size:int):
 	for sample_num in range(0, len(data)+1, batch_size): # 0 부터 data 길이까지 batch_size만큼씩 불러오면서 반복
-		yield data[sample_num * batch_size : (sample_num+1) * batch_size],\
-			target[sample_num * batch_size : (sample_num+1) * batch_size]
-
+		yield data[sample_num : sample_num + batch_size], targets[sample_num : sample_num + batch_size]
 
 
 if __name__ == '__main__':
 	counter = Counter()
-	# token_freq(positive)
-	# count_freq(positive, counter)
-	# make_vocabulary(200, counter)
-	# make_BOW_vector(make_vocabulary(200, counter), token_freq(positive))
-	# make_data(positive, 200, 1.0)
-	return_with_target(200)
+	data, targets = return_with_target(200)
+	for datum, target in iteration(data, targets, 4):
+		print(f'datum => {datum}\ntarget => {target}')
+

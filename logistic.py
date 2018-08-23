@@ -2,18 +2,18 @@ import numpy as np, numpy.ma as ma
 import math
 from train import return_with_target, iteration
 
+def sigmoid(z):
+	return 1.0 / 1.0 + np.exp(-z)
+
 class Classifier(object):
 	def __init__(self, input_size):
 		self.input_size = input_size
 		self.W = np.random.random(input_size)
 		self.b = np.array([0.])
 
-	def sigmoid(self, input_data):
-		return 1.0 / 1.0 + np.exp(input_data @ self.W + self.b)
-
 	def forward(self, input_data): #sigmoid
-		# print(type(X))
-		output = np.array(Classifier.sigmoid(self, input_data))
+		z = input_data @ self.W + self.b
+		output = np.array(sigmoid(z))
 		return output
 
 	def backward(self, input_data, output, target): #backward = back propagation

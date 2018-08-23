@@ -1,17 +1,18 @@
-from path import  Path
-import os
+from pathlib import Path
 from collections import Counter
-import numpy as np
 from random import shuffle
+from typing import Dict, List, Tuple
 
 
-positive = Path('/Users/jungwon-c/Documents/ML Logistic/data/books/positive.review')
-negative = Path('/Users/jungwon-c/Documents/ML Logistic/data/books/negative.review')
-counter = Counter()
+dir = Path('/Users/jungwon-c/Documents/ML Logistic/data')
+positive = dir/'books'/'positive.review'
+negative = dir/'books'/'negative.review'
+
+UNK = '<UNK>' # unknown 단어가 나왔을 때를 위한 포석
 
 
-def token_freq(path:Path):
-	with open(path) as data:
+def token_freq(path:Path) -> List:
+	with path.open(mode='r', encoding='utf-8') as data:
 		lines = []
 		for line in data:
 			sentence = []
@@ -21,7 +22,8 @@ def token_freq(path:Path):
 				freq = int(word[separate+1:])
 				sentence.append((token, freq))
 			lines.append(sentence)
-			# print(sentence)
+			# print(f'sentence => {sentence}')
+			# print(f'zip(*sentence) => {list(zip(*sentence))}')
 		return lines
 
 def count_freq(path:Path, counter:Counter):
@@ -30,64 +32,64 @@ def count_freq(path:Path, counter:Counter):
 		for token, freq in line:
 		# print(f'token => {token}\nfreq => {freq}')
 			counter[token] += freq
-		# for token, freq in :
-		# 	print(f'{token}, {freq}')
-		# counter[token] = freq+1
-	# print(counter)
+	# print(f'counter => {counter}\ntype => {type(counter)}')
 	return counter
 
-def make_vocabulary(vocab_size:int, counter:Counter):
+def make_vocabulary(vocab_size:int, counter:Counter) -> Dict:
 	vocabulary = {}
 	# print(f'original counter => {counter}')
 	count_freq(positive, counter)
 	# print(f'only pos word => {counter}')
 	count_freq(negative, counter)
 	# print(f'add neg word => {counter}')
-	for index, counted_token in enumerate(counter.most_common(vocab_size)):
-		vocabulary[index+1] = counted_token
+	for index, (token, _) in enumerate(counter.most_common(vocab_size)): # .most_common()은 튜플을 묶은 리스트를 반환한다
+		vocabulary[token] = index # 거꾸로 하면 보기 편하지만 make_BOW_vector에서 key error일으킴
+	vocabulary[len(vocabulary)] = UNK
 	# print(vocabulary)
 	return vocabulary
 
+def make_BOW_vector(vocabulary:dict, sentence:list) -> List:
+	vector = [0] * len(vocabulary)
+	for (token, _) in sentence:
+		# print(token)
+		if token in vocabulary.keys():
+			index = vocabulary[token]
+		else:
+			index = len(vocabulary)-1
+		vector[index] = 1
+	# print(vector)
+	return vector
 
-def return_with_target(vocab_size:int):
+def make_data(path:Path, vocab_size:int, target:float) -> List:
 	vocabulary = make_vocabulary(vocab_size, counter)
+	data = []
+	for sentence in token_freq(path):
+		sentence_vector = make_BOW_vector(vocabulary, sentence)
+		data.append((sentence_vector, target))
+	# print(data)
+	return data
 
-	def make_vector(path: Path, vocab_size:int, target: float):
-		lines = token_freq(path)
-		vocab_values = [value[0] for value in vocabulary.values()]
-		# print(type(vocab_values))
-		for sentence in lines:
-			# print(sentence)
-			vector = [0] * len(sentence) 	# vector = np.zeros_like(sentence) 를 하게 되면 sentence 크기 만큼의 0을 갖는 리스트가 아니라 행을 갖는 행렬이 만들어짐
-			# print(vector)
-			for index, pair in enumerate(sentence):
-				# print(f'index => {index}\npair => {pair}')
-				if pair[0] in vocab_values:
-					vector[index] = 1
-			# print(type(vector))
-			yield vector, target
-		# print(vector, target)
-
-	pos_vector, pos_target = zip(*make_vector(positive, vocab_size, 1.0))
-	# print(f'pos_vector => {type(pos_vector)}\npos_target => {type(pos_target), pos_target}')
-	neg_vector, neg_target = zip(*make_vector(negative, vocab_size, 0.0))
-	# print(f'neg_vector => {neg_vector}\nneg_target => {neg_target}')
+def return_with_target(vocab_size:int) -> Tuple:
+	pos_vector, pos_target = zip(*make_data(positive, vocab_size, 1.0))
+	neg_vector, neg_target = zip(*make_data(negative, vocab_size, 0.0))
 	dataset = list(zip(pos_vector+neg_vector, pos_target+neg_target))
 	shuffle(dataset)
 	data, target = zip(*dataset)
-	# print(f'data => {type(data)}\ntarget => {type(target)}')
+	print(f'data => {data}\ntarget => {target}')
 	return data, target
 
 def iteration(data, target, batch_size:int):
-	for sample_num in range(0, len(data)+1, batch_size):
+	for sample_num in range(0, len(data)+1, batch_size): # 0 부터 data 길이까지 batch_size만큼씩 불러오면서 반복
 		yield data[sample_num * batch_size : (sample_num+1) * batch_size],\
 			target[sample_num * batch_size : (sample_num+1) * batch_size]
 
 
 
 if __name__ == '__main__':
+	counter = Counter()
 	# token_freq(positive)
 	# count_freq(positive, counter)
-	# make_vocabulary(2000, counter)
-	# make_vector(negative, 2000)
+	# make_vocabulary(200, counter)
+	# make_BOW_vector(make_vocabulary(200, counter), token_freq(positive))
+	# make_data(positive, 200, 1.0)
 	return_with_target(200)
